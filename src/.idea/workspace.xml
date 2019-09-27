@@ -2,7 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d99ba433-c856-41ff-999b-971e2c02faec" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/R_User_Library.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/construct_network.py" beforeDir="false" afterPath="$PROJECT_DIR$/construct_network.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/edges_8.csv" beforeDir="false" afterPath="$PROJECT_DIR$/edges_8.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/id_nodes_8.csv" beforeDir="false" afterPath="$PROJECT_DIR$/id_nodes_8.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/karma_nodes_8.csv" beforeDir="false" afterPath="$PROJECT_DIR$/karma_nodes_8.csv" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -11,7 +14,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="CoverageDataManager">
-    <SUITE FILE_PATH="coverage/src$construct_network.coverage" NAME="construct_network Coverage Results" MODIFIED="1569537487127" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/src$construct_network.coverage" NAME="construct_network Coverage Results" MODIFIED="1569538930380" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/src$get_daily_data.coverage" NAME="get_daily_data Coverage Results" MODIFIED="1569523425017" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="FileEditorManager">
@@ -19,8 +22,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/construct_network.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="513">
-              <caret line="128" column="20" lean-forward="true" selection-start-line="128" selection-start-column="20" selection-end-line="128" selection-end-column="20" />
+            <state relative-caret-position="516">
+              <caret line="128" column="68" lean-forward="true" selection-start-line="128" selection-start-column="68" selection-end-line="128" selection-end-column="68" />
             </state>
           </provider>
         </entry>
@@ -45,7 +48,7 @@
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds" extendedState="1">
+  <component name="ProjectFrameBounds">
     <option name="x" value="82" />
     <option name="y" value="6" />
     <option name="width" value="1680" />
@@ -161,12 +164,12 @@
       <option name="presentableId" value="Default" />
       <updated>1569518133753</updated>
       <workItem from="1569518136694" duration="7000" />
-      <workItem from="1569518147138" duration="9021000" />
+      <workItem from="1569518147138" duration="10605000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="9028000" />
+    <option name="totallyTimeSpent" value="10612000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -179,14 +182,15 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="82" y="6" width="1680" height="975" extended-state="0" />
+    <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.25338253" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.25338253" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Docker" show_stripe_button="false" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.21693735" />
+      <window_info anchor="bottom" id="Run" order="2" visible="true" weight="0.21693735" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.21113689" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -250,8 +254,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/construct_network.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="513">
-          <caret line="128" column="20" lean-forward="true" selection-start-line="128" selection-start-column="20" selection-end-line="128" selection-end-column="20" />
+        <state relative-caret-position="516">
+          <caret line="128" column="68" lean-forward="true" selection-start-line="128" selection-start-column="68" selection-end-line="128" selection-end-column="68" />
         </state>
       </provider>
     </entry>

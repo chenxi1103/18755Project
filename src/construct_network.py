@@ -122,7 +122,7 @@ def generate_node_dict(relationship_dict):
     return dict
 
 if __name__ == '__main__':
-    relationship_dict, karma_dict = query_api("2019-09-06", 30, 10000)
+    relationship_dict, karma_dict = query_api("2019-08-06", 30, 10000)
     node_dict = generate_node_dict(relationship_dict)
     write_id_node_to_file("id_nodes_8.csv", node_dict)
     write_karma_node_to_file("karma_nodes_8.csv", node_dict, karma_dict)
