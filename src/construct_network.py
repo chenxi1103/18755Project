@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Created by Chenxi Li on 2019-09-26
+import requests
+import csv
+import datetime
 
 daily_query_api_prefix = "https://api.pushshift.io/reddit/submission/search/?subreddit=hongkong&"
 comments_query_api_prefix = "https://api.pushshift.io/reddit/comment/search/?link_id="
 
-import requests
-import csv
-import datetime
 
 def query_api(date, interval, limit):
     next_day = (datetime.datetime.strptime(date, "%Y-%m-%d") + datetime.timedelta(days=interval)).strftime('%Y-%m-%d')
@@ -32,6 +32,7 @@ def query_api(date, interval, limit):
             query_comments(id, relationship_dict, karma_dict)
 
     return relationship_dict, karma_dict
+
 
 def query_comments(link_id, relationship_dict, karma_dict):
     request = comments_query_api_prefix + link_id
@@ -62,6 +63,7 @@ def write_edges_to_file(file_name, relationship_dict, node_dict):
                     data_row.append(node_dict[child])
                     csv_write.writerow(data_row)
 
+
 def write_karma_edges_to_file(file_name, relationship_dict, karma_dict):
     with open(file_name, 'w') as file:
         csv_write = csv.writer(file)
@@ -82,6 +84,7 @@ def write_karma_edges_to_file(file_name, relationship_dict, karma_dict):
                         data_row.append(karma_dict[child])
                     csv_write.writerow(data_row)
 
+
 def write_id_node_to_file(file_name, node_dict):
     with open(file_name, 'w') as file:
         csv_write = csv.writer(file)
@@ -92,6 +95,7 @@ def write_id_node_to_file(file_name, node_dict):
             data_row.append(node_dict[node])
             data_row.append(node)
             csv_write.writerow(data_row)
+
 
 def write_karma_node_to_file(file_name, node_dict, karma_dict):
     with open(file_name, 'w') as file:
@@ -107,6 +111,7 @@ def write_karma_node_to_file(file_name, node_dict, karma_dict):
                 data_row.append(karma_dict[node])
             csv_write.writerow(data_row)
 
+
 def generate_node_dict(relationship_dict):
     dict = {}
     counter = 0
@@ -120,6 +125,7 @@ def generate_node_dict(relationship_dict):
                     dict[child] = counter
                     counter = counter + 1
     return dict
+
 
 if __name__ == '__main__':
     relationship_dict, karma_dict = query_api("2019-08-06", 30, 10000)
