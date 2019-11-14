@@ -7,6 +7,11 @@ import datetime
 
 daily_query_api_prefix = "https://api.pushshift.io/reddit/submission/search/?subreddit=hongkong&"
 comments_query_api_prefix = "https://api.pushshift.io/reddit/comment/search/?link_id="
+class reddit_item:
+    def __init__(self, user_name, karma, id):
+        self.user_name = user_name
+        self.karma = karma
+        self.id = id
 
 
 def query_api(date, interval, limit):
@@ -22,11 +27,14 @@ def query_api(date, interval, limit):
 
     for data in json_data:
         id = data['id']
+        user_name = data['author']
+        score = data['score']
+        reddit = reddit_item(user_name, score, id)
+
         if id not in relationship_dict:
             relationship_dict[id] = []
-        score = data['score']
         if id not in karma_dict:
-            karma_dict[id] = score
+            karma_dict[id] = reddit
         num_comments = data['num_comments']
         if num_comments != 0:
             query_comments(id, relationship_dict, karma_dict)
@@ -36,17 +44,23 @@ def query_api(date, interval, limit):
 
 def query_comments(link_id, relationship_dict, karma_dict):
     request = comments_query_api_prefix + link_id
-    json_data = requests.get(request).json()['data']
-    for data in json_data:
-        id = data['id']
-        score = data['score']
-        parent_id = data['parent_id']
-        if "_" in parent_id:
-            parent_id = parent_id.split("_")[1]
-        if parent_id not in relationship_dict:
-            relationship_dict[parent_id] = []
-        relationship_dict[parent_id].append(id)
-        karma_dict[id] = score
+    try:
+        if requests.get(request).json() is not None:
+            json_data = requests.get(request).json()['data']
+            for data in json_data:
+                id = data['id']
+                score = data['score']
+                user_name = data['author']
+                parent_id = data['parent_id']
+
+                if "_" in parent_id:
+                    parent_id = parent_id.split("_")[1]
+                if parent_id not in relationship_dict:
+                    relationship_dict[parent_id] = []
+                relationship_dict[parent_id].append(id)
+                karma_dict[id] = reddit_item(user_name, score, id)
+    except:
+        pass
 
 
 def write_edges_to_file(file_name, relationship_dict, node_dict):
@@ -67,7 +81,7 @@ def write_edges_to_file(file_name, relationship_dict, node_dict):
 def write_karma_edges_to_file(file_name, relationship_dict, karma_dict):
     with open(file_name, 'w') as file:
         csv_write = csv.writer(file)
-        csv_head = ["Source", "Target"]
+        csv_head = ["Source", "Target", "user_name"]
         csv_write.writerow(csv_head)
         for parent in relationship_dict:
             children = relationship_dict[parent]
@@ -77,11 +91,14 @@ def write_karma_edges_to_file(file_name, relationship_dict, karma_dict):
                     if parent not in karma_dict:
                         data_row.append(-1)
                     else:
-                        data_row.append(karma_dict[parent])
+                        data_row.append(karma_dict[parent].score)
+
                     if child not in karma_dict:
                         data_row.append(-1)
                     else:
-                        data_row.append(karma_dict[child])
+                        data_row.append(karma_dict[child].score)
+                        data_row.append(karma_dict[child].user_name)
+                        data_row.append(karma_dict[child].user_full_name)
                     csv_write.writerow(data_row)
 
 
@@ -100,7 +117,7 @@ def write_id_node_to_file(file_name, node_dict):
 def write_karma_node_to_file(file_name, node_dict, karma_dict):
     with open(file_name, 'w') as file:
         csv_write = csv.writer(file)
-        csv_head = ["id", "label"]
+        csv_head = ["id", "karma", "author"]
         csv_write.writerow(csv_head)
         for node in node_dict:
             data_row = []
@@ -108,7 +125,12 @@ def write_karma_node_to_file(file_name, node_dict, karma_dict):
             if node not in karma_dict:
                 data_row.append(-1)
             else:
-                data_row.append(karma_dict[node])
+                if karma_dict[node].karma is not None:
+                    data_row.append(karma_dict[node].karma)
+                else:
+                    data_row.append(-1)
+                if karma_dict[node].user_name is not None:
+                    data_row.append(karma_dict[node].user_name)
             csv_write.writerow(data_row)
 
 
@@ -128,8 +150,8 @@ def generate_node_dict(relationship_dict):
 
 
 if __name__ == '__main__':
-    relationship_dict, karma_dict = query_api("2019-08-06", 30, 10000)
+    relationship_dict, karma_dict = query_api("2019-11-01", 30, 10000)
     node_dict = generate_node_dict(relationship_dict)
-    write_id_node_to_file("id_nodes_8.csv", node_dict)
-    write_karma_node_to_file("karma_nodes_8.csv", node_dict, karma_dict)
-    write_edges_to_file("edges_8.csv", relationship_dict, node_dict)
+    write_id_node_to_file("id_nodes_11.csv", node_dict)
+    write_karma_node_to_file("karma_nodes_11.csv", node_dict, karma_dict)
+    write_edges_to_file("edges_11.csv", relationship_dict, node_dict)
