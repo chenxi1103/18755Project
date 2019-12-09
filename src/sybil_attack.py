@@ -3,7 +3,14 @@
 # Created by Chenxi Li on 2019-10-24
 import csv
 
+
 def construct_user_id_dict(filename, threshold):
+    """
+    Build user id dic
+    :param filename: filename
+    :param threshold: largest number of origin layer
+    :return:
+    """
     user_id_dict = {}
     threshold_id = []
     with open(filename, 'r') as file:
@@ -17,7 +24,15 @@ def construct_user_id_dict(filename, threshold):
             counter += 1
     return user_id_dict, threshold_id
 
+
 def get_commentors(filename, user_id_dict, threshold_id):
+    """
+    Filter out the users who are more likely to comment on 1 karma user
+    :param filename: file name
+    :param user_id_dict: user id dic
+    :param threshold_id: user name for threshold
+    :return:
+    """
     commentors = set()
     counter_commentor = set()
     with open(filename, 'r') as file:
@@ -36,7 +51,14 @@ def get_commentors(filename, user_id_dict, threshold_id):
             counter += 1
     return commentors, counter_commentor
 
+
 def remove_duplicate(commentors, counter_commentor):
+    """
+
+    :param commentors: list
+    :param counter_commentor: list
+    :return:
+    """
     print("============counter commentor===============")
     commentorslist = list(commentors)
     for commentor in commentorslist:
@@ -44,7 +66,15 @@ def remove_duplicate(commentors, counter_commentor):
             commentorslist.remove(commentor)
     return commentorslist
 
+
 def count_map(commentorslist, user_id_dict):
+    """
+    Counter map
+    :param commentorslist: List
+    :param user_id_dict: Dic
+    :return:
+    """
+
     count_dict = {}
     for commentor in commentorslist:
         counter = 0
@@ -56,6 +86,11 @@ def count_map(commentorslist, user_id_dict):
     return count_dict
 
 def get_top_commentors(count_dict):
+    """
+    Filter honest users
+    :param count_dict: counter dict
+    :return:
+    """
     top_commentors = []
     for commentor in count_dict:
         if (commentor[1] >= 10):
@@ -64,14 +99,18 @@ def get_top_commentors(count_dict):
     return top_commentors
 
 def generate_sybil_fake_accounts():
+    """
+    Build 100fake accounts
+    :return:
+    """
     accounts = []
     for i in range(1,101):
         accounts.append("fake_account_" + str(i))
     return accounts
 
 if __name__ == '__main__':
-    filename1 = "karma_nodes_5.csv"
-    filename2 = 'edges_5.csv'
+    filename1 = "karma_nodes_10.csv"
+    filename2 = 'edges_10.csv'
     user_id_dict, threshold_id = construct_user_id_dict(filename1, 1)
     commentors, counter_commentors = get_commentors(filename2, user_id_dict, threshold_id)
     commentorslist = remove_duplicate(commentors, counter_commentors)

@@ -15,6 +15,13 @@ class reddit_item:
 
 
 def query_api(date, interval, limit):
+    """
+    Send url request and parse respone
+    :param date: input date
+    :param interval: defualt 30
+    :param limit: 10000
+    :return: karma-dict
+    """
     next_day = (datetime.datetime.strptime(date, "%Y-%m-%d") + datetime.timedelta(days=interval)).strftime('%Y-%m-%d')
     request = daily_query_api_prefix + "after=" + date + "&before=" + next_day + "&limit=" + str(limit)
     # Get all the topics published in subreddit - hongkong in one day (date). in Json format
@@ -43,6 +50,13 @@ def query_api(date, interval, limit):
 
 
 def query_comments(link_id, relationship_dict, karma_dict):
+    """
+    :param link_id: user id
+    :param relationship_dict: key-parent value- children
+    :param karma_dict: key- user id value-karma point
+    :return:
+    """
+
     request = comments_query_api_prefix + link_id
     try:
         if requests.get(request).json() is not None:
@@ -64,6 +78,13 @@ def query_comments(link_id, relationship_dict, karma_dict):
 
 
 def write_edges_to_file(file_name, relationship_dict, node_dict):
+    """
+    Construct edge and write file
+    :param file_name: file name
+    :param relationship_dict: key- parent node;  value- children node
+    :param node_dict: id - user dict
+    :return:
+    """
     with open(file_name, 'w') as file:
         csv_write = csv.writer(file)
         csv_head = ["Source", "Target"]
@@ -79,6 +100,14 @@ def write_edges_to_file(file_name, relationship_dict, node_dict):
 
 
 def write_karma_edges_to_file(file_name, relationship_dict, karma_dict):
+    """
+    Build edge with user id.
+    :param file_name: file name
+    :param relationship_dict:
+    :param karma_dict: karma - user
+    :return:
+    """
+
     with open(file_name, 'w') as file:
         csv_write = csv.writer(file)
         csv_head = ["Source", "Target", "user_name"]
@@ -103,6 +132,12 @@ def write_karma_edges_to_file(file_name, relationship_dict, karma_dict):
 
 
 def write_id_node_to_file(file_name, node_dict):
+    """
+    Construct id node and write to file
+    :param file_name: file name
+    :param node_dict: Dict
+    :return:
+    """
     with open(file_name, 'w') as file:
         csv_write = csv.writer(file)
         csv_head = ["id", "label"]
@@ -115,6 +150,13 @@ def write_id_node_to_file(file_name, node_dict):
 
 
 def write_karma_node_to_file(file_name, node_dict, karma_dict):
+    """
+    Construct karma node with user id
+    :param file_name: file name
+    :param node_dict: node dict
+    :param karma_dict: karma dict
+    :return:
+    """
     with open(file_name, 'w') as file:
         csv_write = csv.writer(file)
         csv_head = ["id", "karma", "author"]
@@ -135,6 +177,11 @@ def write_karma_node_to_file(file_name, node_dict, karma_dict):
 
 
 def generate_node_dict(relationship_dict):
+    """
+    Build edge and node
+    :param relationship_dict: key - parent value - user node
+    :return: dict
+    """
     dict = {}
     counter = 0
     for node in relationship_dict:

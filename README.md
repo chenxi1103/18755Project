@@ -1,37 +1,56 @@
-## Welcome to GitHub Pages
+## Sybil Attack and Defense Analysis on Social Media Networks
 
-You can use the [editor on GitHub](https://github.com/chenxi1103/18755Project/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+18755 project 
+Team 9
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+### Activate
+```
+pip install requests
+pip install networkx
+pip install community
+pip install matplotlib.pyplot
+```
 
-### Markdown
+### Krama Network
+- Node: Karma Points 
+- Edges: Directed from post to its comments or comment to its sub-comments 
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+``
+run python3 karma_network.py
+``
 
-```markdown
-Syntax highlighted code block
+### User Network
 
-# Header 1
-## Header 2
-### Header 3
+- Node: Reddit User
 
-- Bulleted
-- List
+- Edges: Users who comment on the same parent nodes are connected indirectly
 
 1. Numbered
 2. List
 
-**Bold** and _Italic_ and `Code` text
+### Filter honest users and generate fake accounts
 
-[Link](url) and ![Image](src)
+```
+run  python3 sybil_attack.py
+```
+### Attack
+
+```
+run python3 user_network.py attack
+
 ```
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+### Partition Defense
+```
+run python3 user_network.py partition
+```
 
-### Jekyll Themes
+### Pruning Defense
+```angular2
+run python3 user_network.py pruning
+```
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/chenxi1103/18755Project/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+### Practical Implementation
+```
+run python3 user_network.py practical
+```

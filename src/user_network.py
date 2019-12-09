@@ -9,6 +9,7 @@ import random
 import community
 import matplotlib.pyplot as plt
 import collections
+import sys
 import json
 
 
@@ -18,7 +19,15 @@ author_query_api_prefix = "https://api.pushshift.io/reddit/search/comment/?autho
 
 
 def query_api(date, interval, limit, trust_list):
-    first_next_day = (datetime.datetime.strptime(date, "%Y-%m-%d") + datetime.timedelta(days=15)).strftime('%Y-%m-%d')
+    """
+    Get all json data to get origin network
+    :param date: date
+    :param interval: default 30 days
+    :param limit: default 10000
+    :param trust_list: filter out honest users
+    :return: graph and weight_dic
+    """
+    first_next_day = (datetime.datetime.strptime(date, "%Y-%m-%d") + datetime.timedelta(days=interval)).strftime('%Y-%m-%d')
     request = daily_query_api_prefix + "after=" + date + "&before=" + first_next_day + "&limit=" + str(limit)
     # Get all the topics published in subreddit - hongkong in one day (date). in Json format
     json_data = requests.get(request).json()['data']
@@ -35,31 +44,19 @@ def query_api(date, interval, limit, trust_list):
 
         num_comments = data['num_comments']
         if num_comments != 0:
-            graph, weight_dic = build_edge(raw_id, graph, id_user_dic, weight_dic)
-    for ele in trust_list:
-        graph.remove_node(ele)
-        if ele in weight_dic:
-            del weight_dic[ele]
-    second_day = (datetime.datetime.strptime(first_next_day , "%Y-%m-%d") + datetime.timedelta(days=15)).strftime('%Y-%m-%d')
-    second_request = daily_query_api_prefix + "after=" + first_next_day + "&before=" + second_day + "&limit=" + str(limit)
-    second_json_data = requests.get(second_request).json()['data']
-
-    for data in second_json_data:
-        user = data['author']
-        graph.add_node(user)
-        # link id for topic
-        raw_id = data['id']
-        if raw_id not in id_user_dic and user != "[deleted]":
-            id_user_dic[raw_id] = user
-
-        num_comments = data['num_comments']
-        if num_comments != 0:
-            graph, weight_dic = build_edge(raw_id, graph, id_user_dic, weight_dic)
-    print("edges"+str(graph.edges))
+            build_edge(raw_id, graph, id_user_dic, weight_dic)
     return graph, weight_dic, id_user_dic
 
 
 def build_edge(link_id, graph, id_user_dic, weight_dic):
+    """
+    Build edge for network
+    :param link_id: user id
+    :param graph: weighted graph
+    :param id_user_dic: key- userid value-author name
+    :param weight_dic: edge dict
+    :return: graph and weight_dic
+    """
     parent_dic = {}
     request = comments_query_api_prefix + link_id
     try:
@@ -79,21 +76,21 @@ def build_edge(link_id, graph, id_user_dic, weight_dic):
         for key, children in parent_dic.items():
             # random shuffle children
             children = list(children)
-            # random.shuffle(children)
-            # cut = random.randint(0, len(children))
-            # child_1 = children[:cut]
-            # child_2 = children[cut:]
-            # # print("children1 " + str(len(child_1)))
-            # # print("children2 " + str(len(child_2)))
-            # connect(child_1, graph, id_user_dic, weight_dic)
-            # connect(child_2, graph, id_user_dic, weight_dic)
-            graph, weight_dic = connect(children, graph, id_user_dic, weight_dic)
+            connect(children, graph, id_user_dic, weight_dic)
         return graph, weight_dic
     except json.decoder.JSONDecodeError:
         pass
 
 
 def connect(children, graph, id_user_dic, weight_dic):
+    """
+    Connect edge
+    :param children: user in each layer
+    :param graph: user graph
+    :param id_user_dic: key- id value- author name
+    :param weight_dic: edge name
+    :return:
+    """
     if len(children) <= 1:
         return
     for i in children:
@@ -110,6 +107,12 @@ def connect(children, graph, id_user_dic, weight_dic):
 
 
 def counter_attack(dict, fake):
+    """
+    Partition algorithm for defense
+    :param dict: weight-dict
+    :param fake: fake list
+    :return: weight dict
+    """
     random.shuffle(fake)
     if len(fake) >= 20:
         for i in range(0, len(fake)-1, 20):
@@ -117,7 +120,28 @@ def counter_attack(dict, fake):
     return dict
 
 
+def pruning_attack(dict, fake):
+    """
+    Pruning algorithm for defense
+    :param dict: weight-dict
+    :param fake: fake list to be removed
+    :return: weight dict
+    """
+    random.shuffle(fake)
+    if len(fake) >= 20:
+        new_connect(fake[:21], dict)
+    else:
+        new_connect(fake, dict)
+    return dict
+
+
 def new_connect(lst, w_dict):
+    """
+    Fully connect the list
+    :param lst: List
+    :param w_dict: Dict
+    :return:
+    """
     for i in lst:
         for j in lst:
             if i != j:
@@ -126,6 +150,13 @@ def new_connect(lst, w_dict):
 
 
 def get_uncomment(graph, w_dict, trust_list):
+    """
+    Practical Implementation
+    :param graph: undirected graph
+    :param w_dict: weight dict
+    :param trust_list:
+    :return:
+    """
     for ele in trust_list:
         graph.remove_node(ele)
         del w_dict[ele]
@@ -133,6 +164,12 @@ def get_uncomment(graph, w_dict, trust_list):
 
 
 def plot_community(G, partition):
+    """
+    Community detection and plot
+    :param G: undirected graph
+    :param partition: partition algorithm
+    :return:
+    """
     size = float(len(set(partition.values())))
     pos = nx.spring_layout(G)
     count = 0.
@@ -147,6 +184,11 @@ def plot_community(G, partition):
 
 
 def count_community(part):
+    """
+    Detect community of graph
+    :param part: graph
+    :return:dict_list
+    """
     count = collections.defaultdict(list)
     for key, value in part.items():
         count[value].append(key)
@@ -159,19 +201,79 @@ def count_community(part):
 
 
 def attack(w_dict, fake_list):
+    """
+    Attack simulation
+    :param w_dict: weight dict
+    :param fake_list:
+    :return:
+    """
     for i in fake_list:
         for j in fake_list:
             if i != j:
                 w_dict[(i, j)] = w_dict.get((i, j), 0) + 1
-    # for i in two_list:
-    #     for j in two_list:
-    #         if i != j:
-    #             w_dict[(i, j)] = w_dict.get((i, j), 0) + 1
     return w_dict
 
+def run_attack(attack_graph, karma_list, weight_dict):
+    """
+    runner for attack
+    :param attack_graph:
+    :param karma_list:
+    :param weight_dict:
+    :return:
+    """
+    # july_attack_graph = user_graph
+    july_attack_dict = attack(weight_dict, karma_list)
+    weight_edges_attack = [(x, y, val) for (x, y), val in july_attack_dict.items()]
+    attack_graph.add_weighted_edges_from(weight_edges_attack)
+    print("******************Attack*******************")
+    print("attack_node" + str(len(attack_graph.nodes())))
+    print("attack_edge" + str(len(attack_graph.edges())))
+    attack_community = community.best_partition(attack_graph)
+    attack_dic_lst = count_community(attack_community)
+    nx.write_gml(attack_graph, "m3_july_attack_2.gml")
+
+
+def run_pruning(defense_graph, karma_list, weight_dict):
+    """
+    runner for pruning algorithm
+    :param defense_graph:
+    :param karma_list:
+    :param weight_dict:
+    :return:
+    """
+    defense_weight_dict = pruning_attack(weight_dict, karma_list)
+    weight_edges_defense = [(x, y, val) for (x, y), val in defense_weight_dict.items()]
+    defense_graph.add_weighted_edges_from(weight_edges_defense)
+    print("******************Defense********************")
+    print("defense_node" + str(len(defense_graph.nodes())))
+    print("defense_edge" + str(len(defense_graph.edges())))
+    defense_community = community.best_partition(defense_graph)
+    dic_lst = count_community(defense_community)
+    print(dic_lst)
+    nx.write_gml(defense_graph, "m4_july_pruning.gml")
+
+
+def run_partition(defense_graph, karma_list, weight_dict):
+    """
+    runner for partition algorithm
+    :param defense_graph:
+    :param karma_list:
+    :param weight_dict:
+    :return:
+    """
+    defense_weight_dict = counter_attack(weight_dict, karma_list)
+    weight_edges_defense = [(x, y, val) for (x, y), val in defense_weight_dict.items()]
+    defense_graph.add_weighted_edges_from(weight_edges_defense)
+    print("******************Defense********************")
+    print("defense_node" + str(len(defense_graph.nodes())))
+    print("defense_edge" + str(len(defense_graph.edges())))
+    defense_community = community.best_partition(defense_graph)
+    dic_lst = count_community(defense_community)
+    nx.write_gml(defense_graph, "m4_july_partition.gml")
 
 
 if __name__ == '__main__':
+    action = sys.argv[1]
     new_set = {'MyAccountRuns', 'idonthaveacoolname13', 'angrytwerker', 'Future441', 'bosfton', 'The-Last-Summer', 'aajin', 'buffopmartianboi', 'hundrafemtio', 'Luke_LMV', 'ServedNoodles', 'tottenhamlimbs', 'strikefreedompilot', 'kafkaonshore', 'Herkentyu_cico', 'clang823', 'FaustiusTFattyCat613', 'GabhaNua', 'Yuanlairuci', 'kaycee1992', 'firen777', 'Chuchumaruu', 'Doubtitcopper', 'schnappi2', 'Nudetypist', 'SciFiJesseWardDnD', 'Yurion13', 'NewYorkais', 'defaultskin2', 'canto-ling', 'rosesarebIack', 'Tarfire42', 'Doctor-TJEckleburg', 'rackcountry', 'Breshawnashay', 'imbantam', 'robostrike', 'Buuksta', 'ummusername', 'PandaOfBunnies', 'late2party', 'Stalslagga', 'BigBulkemails', 'Cunt_squared', 'stormbreaker4urheart', 'thephenom', 'Wildicki', 'LilithScout', 'Omega9800', 'XDivider', 'Mister-Kool-Aid', 'zeta7124', 'mickaelbneron', 'Jedi_Revan', 'DefinitionOfFear', 'kuolinn', 'DutchMeteor', 'KungFusedMike', 'renmenbibi', 'Progenitor001', 'tangerinejoy228', 'rocharox', 'ff_525', 'BasedAssadReturns', 'TravelPhoenix', 'ihatefilialpiety', 'Kitsunemitsu', 'Overcast30', 'Corner_Post', 'mishka0111', 'ALotOfRice', 'jacquesperry', 'la_mwnmwn', 'testedonsheep', 'LanEvo7685', 'Rilanara', 'gtsomething', 'GlobTrotters', 'EverybodyGetsCheese', 'lejfanbejfans_farmor', 'j_blackshadow', 'chugotleung2016', 'jayklk', 'GalantnostS', 'HammerSpam', 'joker_wcy', 'pigsonthewingz', 'flyingrobotpig', 'tobyclh', 'Danger_Dwarf17', 'RepF1A', 'Han-Do-Jin', 'Tungsten_Rain', 'Whimsycottt', 'swatgreat', 'UnoKitty', 'I_RIDE_SHORTSKOOLBUS', 'jynxbaba87', 'sesameseed88', 'Brave_Sir_Robin__', '-Thnift-', 'NinjahBob', 'Iblis824', 'Tickle-Bones', 'terry_banks', 'burningbun', 'bricknermonfan', 'fennej', 'potatopunchies', 'uberduck', '6nicemaymay9', 'jay1sb', 'toxicpast', 'stroopkoeken', 'monkeypie1234', 'gucci-legend', 'germainelol', 'Eitoku_K', 'ImpulseSnail2', 'polandCANintospace20', 'truehker', 'blue2usk', 'shilabula', 'wuliwala', '[deleted]', 'GeekyDoesReddit', 'SGarnier', 'DoctorKrusher', 'sexweedncigs', 'ogstepdad', 'Testing123xyz', 'chairmanwumao', 'sadboisadgurl', 'The_Thurmanator', 'endkkkterror', 'bubbybyrd', 'mma21x', 'TheTigerOfHK', 'Webcrack12', '2035WillBeGreat', 'JackHazardous', '_Manfred_', 'POCKETB00K1337', 'Shark_Fucker', 'ThatOneKid235', 'djrocks420', 'truer_DNA', 'petitecannon', 'dainthomas', 'wot0', 'HeungMinSonaldo7', '350Points', 'halftosser', 'Lauer99', 'Gabelolguy', 'EridanusVoid', 'TylerTheWolf123', 'Century64', 'Chemical_Violinist', 'Link-Amp', 'tinyrickross', 'mcTw2wZNvAmjvRMour2h', 'Zombiellen', 'doommagic1', 'hKthrowaway_789', 'dragon_sush1', 'Engine365', 'vikingbiochemist', 'needcleverpseudonym', 'No1BTSstanAccount', 'depo1983', 'torbn', 'mikedpoole', 'd0pedog', 'knigja', 'SpectrixYT', 'avid_procrastinator_', 'droptester', 'chromiselda', 'battleship217', 'biggiejon', 'mrjayviper', 'glycerethe', 'Silverwhitemango', 'SuperGrandor', 'BOXDisme', 'HereUThrowThisAway', 'xKnightly', 'nighthawk2019', 'neinMC', 'Nebben86', 'blackbloc1', 'somethingmichael', 'dreamerwakeup', 'DigitalMystik', 'GrandDukeofLuzon', 'euphraties247', 'FenceThinkHear', 'breezeaway1', 'Twitch_Tsunami_X', 'nakedpaddington', 'thematchalatte', 'WhineyVegetable', 'cuteshooter', 'Suremantank', 'chiefpat450119', 'passarinhodeak', 'danhoyuen', 'Megneous', 'Zman201', 'Localmotivator', 'EverythingIsNorminal', 'squareheadhk', 'gwairide', 'kennychwk', 'koolman7', 'itzvincentx3', 'Kuecke', 'holangjai', 'KyleEvans', 'JABHK', 'dynobot7', 'honsworth', 'debito128', '28th_boi', 'surprisesugarfree', 'toma17171', 'bicboi235', 'cti112', 'kJ2Y19HOStlBpKGSlBDK', 'emmytee', 'Nomie-Now', 'KRIEEEG', 'ymcatar0', 'HeartStarJester', 'lisabbqgirl', 'Saw_Good_Man', 'newrabbid', 'ibopm', 'tromboneface', 'NoisyFerox', 'Sapr_', 'SodaSplash', 'ronin_JR', 'KyoueiShinkirou', 'Lost_Tourist_61', 'Minoltah', 'caantoun', 'kimlorio', 'HKAzxc', 'stayhomedaddy', 'WeeklyIntroduction42', 'nikefan03', 'kaqing8', 'gabolicious', 'SCP-1', 'wdiva12121999', 'selphiefairy', 'GoRush87', 'Chocobean', 'JampoSpeaksForMoney', 'NachzehrerL', 'Steam_W0rks', 'houstonianisms', 'Giimax', 'joealmighty01', 'TuckerMcInnes', 'godrayden', 'pygocaribe', 'TheIlluminatedone13', 'HKVOAAP', 'flowbrother', 'poopfeast180', 'NiMiXeS', 'Annamman', 'looplox', 'KnowingRecipient', 'wha2les', 'oursondechine', 'SpecialistPlatypus', 'jackychanwo', 'NotASuicidalRobot', '-ipa', 'notmycharmander', 'lidge7012', 'fitterjohn', 'ConstantInteraction', 'Larry17', 'JoshTheRussian', 'TimelyPhoton', 'ItsAllOurBlood', 'c0p', 'tomazws', 'crispymoonshine', 'rentonwong', 'dennis_w', '-_asmodeus_-', 'J_Hutch64', 'Turd111', 'Little_Lightbulb', 'goldfish_memories', 'Moskau50', 'LogicalyetUnpopular', 'CaptainTeem000', 'Radge24', 'Ihavenofork', 'KaneCreole', 'Cyleni', 'ZePinkBaron', 'CookingLearner', 'ClickableLinkBot', 'josnowball', 'root_0f_all_cause', 'TheyGonHate', 'NikplaysgamesYT', 'alkalinecactus', 'Eat_the_Path', 'alvincf105', 'sensenjan', 'Xelium23', 'michael14375', 'Mad_Doggy_Dog', 'kingpug_asian', 'YenTheMerchant', 'Grifte6888', 'MxFragz', 'judoka320', 'ShoutingMatch', 'weddle_seal', 'Valo-FfM', 'Marrokiu20', 'apotheosis77', 'blackfyre69', 'bleepitybloop555', 'porkmantou', 'From_same_article', 'patm28', 'DrugHamster', 'E-X-Animus', 'highmejaime', 'YoYoThisIsJason', 'yaronSoo', 'NPC5175', 'AgnesTheAtheist', 'Deadeye_Spider', '_Forgot_name_', '-frozenfox-', 'Berzerka', 'tiangong', 'NextYin', 'groovytoon', '_xXpewdiepieShrekXx_', 'IloveSonicsLegs', 'brooklynnet32', 'WolzardFire', '1-1-2-1-RED-BLACK-GO', 'scrugbyhk', 'Toiisha', 'sonastyinc', 'JustALinuxNerd', 'competativevaper', 'HongKongPig', 'PandaPool69', 'HiThisisCarson', 'bearmc27', 'sarahlovesghost', 'Wardjinni', 'beepbeepwow', 'DerPoto', 'schmiggle_horn2020', 'SSiui', 'sgraBer1', 'starsmoonsun67', 'Megafro', 'hungzai', 'BluaBaleno', 'whocaresaboutnaming', 'VietCong0910', 'MT_SLAETTARATINDUR', 'boonus_boi', 'do_you_still_exist', 'jsmoove888', 'manonthemount', 'guyontheinternet2000', 'RealButtMash', 'Estulticio', 'Catmasteryip', 'towndrunk00', 'davidgr33n3', 'satanshelpdesk', 'sableee', 'ASketchyLlama', 'Uknown1972', 'MidLinebacker49', 'jdkwak', 'AdiosCorea', 'chundermonkey74', 'jackmoopoo', 'kkkmw', 'harelk', 'Rhiannax3', 'MikeDeRebel', 'tvbusy', 'bernieyee', 'chewkeat', 'savemysoul88', 'Kesher123', 'g0ldenb0y', 'GoodJobNL', 'Legacy03', 'Luke050715', 'Mr-Darkseid', 'joeDUBstep', 'lancer2238', 'the_random_bot', 'Salty_Assassin', 'BSTUFUI', 'ishidayamato', 'three_oneFour', 'valdici', 'Fighter754', 'Actuated_', 'augustm', 'BleuPrince', 'cotopaxi64', 'CosmicBioHazard', 'accidental_superman', 'whiskey547', 'Maklarr4000', 'katotaka', 'cantorock6', 'veekm', 'Nakjibokkeum', 'CatstructorPenny', 'AGRisator', 'ThoughtfulJanitor', 'KachangSorbet', 'Nichchk', 'jiggel_x', 'starfallg', 'Alchemist_XP', 'DimSumLee', 'Fidel_Costco', 'roostwrinchains', 'Ijustice', 'blacksungod', 'BaGamman', 'QuincyAzrael', 'bloncx', 'MAGA_ManX', 'Chaipod', 'pancake_ass', 'carlostsang', 'Dioxbit', 'namgwa', 'Jurk_McGerkin', 'DatMeme21', 'steve9341', 'SavedMountain', 'Darkblade48', 'SNR_1337', 'somebodyelse1889', 'BosWandeling', 'Verhaz', 'ItzJustMonika__', 'MaxImageBot', 'SumakQawsay', 'puppysayswoef', 'GabrielXiao', 'data_citizen', 'Cosmogally', 'NoHalf9', 'hazaface', 'aaclavijo', 'ZZ34', 'mindsnare1', 'sec5', 'MrNewVegas123', 'HonkinSriLankan', 'ChristianKS94', 'Jaedos', 'Defiyance', 'nametemplate', 'link-quizas', 'furnimal', 'mikibov', 'fapfairy22', 'Murdock07', 'Eddie_gaming', 'Wendfina', 'atomician', 'sleshm', 'zerou69', 'skejfee', 'LumpySpaceBrotha', 'smellslikeautism', 'Misko187', 'HyperMeems', 'lambopanda', 'FernadoPoo', 'lebrian', 'NeuroButt', 'KKLHY', 'JaJaWa', 'AHK403YYC', 'throwburgeratface', 'Charlie026', 'griftylifts', 'zhykonrx79', 'MelodySnow', 'ahx-fos3', 'kazalaa', 'PM_ME_SEXY_LOBSTERS', 'under_thesun', 'Markovspiron', 'Fonze1973', 'flamespear', 'miss_wolverine', 'HeliaXDemoN', 'B3n7340', 'Ahum-wait-what', 'isiyouji', 'justwalk1234', 'RageBill', '22_hours_ago', 'panchovilla_', 'overachiever', 'lukemcadams', 'C115551', 'Parallelism09191989', 'thisiscotty', 'jupiter1_', 'You_are_OK_Buddy', 'antoinedodson_', 'SgtShephard', 'EDGYhooDIE69', 'DnEng', 'deuceman4life', 'LonelyExchange', 'heylookasign', 'StanleyOpar', 'MistyMystery', 'bortalizer93', 'Karloman314', 'addictiontoprotein', 'BeijingTurkey', 'fossdell', 'rankinrez', 'Vodkacannon', 'mrkuolematon', 'Valencia335', 'wlekin', 'Unattributabledk', 'seoul2014', 'macanesedog', 'Electroyote', 'ancientflowers', 'challengingviews', 'jaqueburn', 'benjaminovich', 'Redguy05', 'Ahlruin', '04FS', 'davidmobey', 'ginesaisquoi', 'PG14_', 'Charlie_Yu', 'Francischew_zh', 'hav0cbl00d', 'HrOlympios', 'Micullen', 'Dr00dy', 'darps', 'Skelelight', 'Dude_JK', 'Mr-Rasta-Panda', 'bloopy1545', 'Raimondi06', 'invigo79', 'xX_ArsonAverage_Xx', 'tinhtinh'}
     new_list = list(new_set)
     two_set = {'iammrh4ppy', 'tongyaop', 'JanjaRobert', 'Charlie_Yu', 'nahcekimcm', 'Magitechnitive', 'hungzai', 'tQto', 'ravenraven173', 'Unattributabledk', 'Tunago_', 'percy_jones', 'Edinedi', 'ayavvv', 'omgplzdontkillme', 'simbaragdoll', 'sukieniko', 'PrometheusBoldPlan', 'holangjai', '2019titty_bear', 'thumper99', 'juddshanks', 'c00l105', 'storjfarmer', 'pertmax', 'essex_ludlow', 'plastic17', 'CormAlan', 'htc922', 'TravelPhoenix', 'stevegonzales1975', 'kingmoobot', 'baked-noodle', '8thDegreeSavage', 'Davekd', 'charliegrs', '[deleted]', 'CloroxEnergyDrink_', 'chibiwong', 'Sheldonleemyers', 'loromente', 'Xayacota', 'thematchalatte', 'Frokenfrigg', 'victurchen', 'GrassTastesGrass', 'NormenYu', 'rentonwong', 'deadon9'}
@@ -184,63 +286,29 @@ if __name__ == '__main__':
     july_karma_list = ['jvmesalexander', 'phy361sm', 'isaacng1997', 'adz4309', 'KeepLickingHoney', '7chut7', 'LiveForPanda', 'savemysoul88', 'NotEvenAMinuteMan', 'Surfingblue90', 'magnusjonsson', 'kharnevil', 'O7GS', 'ZWF0cHVzc3k', 'hkisdying', 'EDoric', 'leethal59', 'IPromiseIWont', 'adeveloper2', 'thumper99', 'hotasianman', 'yc_hk', 'netok', 'GottJager', 'fruitspunch-samurai', 'me-i-am', 'thanosbutt', 'ethenlau88', 'Techqjo', 'spicednut', 'KvasirsBlod', 'hellocheeseee', 'Mashmalo', 'oliver_reade', 'Davidier', 'yyl2000', 'sikingthegreat1', 'XPGamingYT', 'Brereddit112', 'Valyris', 'WikiTextBot', 'chairmanwumao', 'goocho', 'drkpua', 'KnowingRecipient', 'dhdhk', 'HKGong', 'drs43821']
     sep_karma_list = ['miss_wolverine', 'Moskau50', 'TravelPhoenix', 'scaur', 'BleuPrince', 'barson2408', 'mma21x', 'puppysayswoef', 'ZWF0cHVzc3k', 'Charlie_Yu', 'aaclavijo', 'thematchalatte', 'Kingmundo', 'GlobTrotters', 'ticonderoga67', 'joker_wcy', 'Breshawnashay', 'kspastroivanc', 'KnowingRecipient', 'Ihavenofork', 'monkeypie1234', 'Edinedi', 'kwanting', 'WonderfulPaterful1', 'suziewrong', 'Jerk_Alex', 'ishidayamato', 'pzivan', 'BitterEngineer', 'PmMeUrCreativity', 'gattaca_now', 'ocean_life_', 'ambitchouswannabe', 'NotEvenAMinuteMan', 'SubjectObjective', 'mitrang', 'notmycharmander', 'cyber_rigger']
     oct_karma_list = ['miss_wolverine', 'bloncx', 'scaur', 'TheTigerOfHK', 'brah888', 'eleinamazing', 'A_boy_and_his_boston', 'lebbe', 'GlobTrotters', 'Nichchk', 'hellobutno', 'Moskau50', 'Turd111', 'RogueSexToy', 'Blackhk', '22_hours_ago', 'humanity_is_doomed', 'ASketchyLlama', 'leftrighttopdown', 'IronKanabo', 'ZWF0cHVzc3k', 'simian_ninja', 'Eitoku_K', 'pomelopomelo']
-    # total_list = aug_karma_list + may_karma_list + jun_karma_list + july_karma_list + sep_karma_list + oct_karma_list
-    # gangdu_dic = collections.Counter(total_list)
-    # print(gangdu_dic)
     user_graph, weight_dict, id_user_dic = query_api("2019-07-01", 30, 10000, july_karma_list)
     weight_edges = [(x, y, val) for (x, y), val in weight_dict.items()]
     user_graph.add_weighted_edges_from(weight_edges)
-    print("******************defense partition************")
-    print("origin node" + str(len(user_graph.nodes())))
-    print("origin edge" + str(len(user_graph.edges())))
-    community1 = community.best_partition(user_graph)
-    origin_dic_lst = count_community(community1)
-    print(origin_dic_lst)
-    nx.write_gml(user_graph, "m4_july_defense.gml")
-    # july_final_karma = fake_list + july_karma_list
-
-    # defense_graph = user_graph
-    # defense_weight_dict = counter_attack(weight_dict, july_final_karma)
-    # weight_edges_defense = [(x, y, val) for (x, y), val in defense_weight_dict.items()]
-    # defense_graph.add_weighted_edges_from(weight_edges_defense)
-    # print("******************Defense********************")
-    # print("defense_node" + str(len(defense_graph.nodes())))
-    # print("defense_edge" + str(len(defense_graph.edges())))
-    # defense_community = community.best_partition(defense_graph)
-    # dic_lst = count_community(defense_community)
-    # print(dic_lst)
-    # nx.write_gml(defense_graph, "m3_july_defense_2.gml")
-    #
-    #
-    # # attack
-    # july_attack_graph = user_graph
-    # july_attack_dict = attack(weight_dict, july_final_karma)
-    # weight_edges_attack = [(x, y, val) for (x, y), val in july_attack_dict.items()]
-    # july_attack_graph.add_weighted_edges_from(weight_edges_attack)
-    # print("******************Attack*******************")
-    # print("attack_node" + str(len(july_attack_graph.nodes())))
-    # print("attack_edge" + str(len(july_attack_graph.edges())))
-    # attack_community = community.best_partition(july_attack_graph)
-    # attack_dic_lst = count_community(attack_community)
-    # print(attack_dic_lst)
-    # nx.write_gml(july_attack_graph, "m3_july_attack_2.gml")
-
-    # # # partition counter attack
-    # # w_dict = counter_attack(fake_list, weight_dict)
-    # # weight_dict_attack = attack(weight_dict, oct_final_karma)
-
-
-
-
-
-
-    # attack_graph = nx.read_gml("m3_oct_attack.gml")
-    # part3 = community.best_partition(attack_graph)
-    # origin_graph = nx.read_gml("m2_aug.gml")
-    # part1 = community.best_partition(origin_graph)
-    # defense_graph = nx.read_gml("m3_oct_defense.gml")
-    # part2 = community.best_partition(defense_graph)
-    # print(count_community(part3))
+    july_final_karma = fake_list + july_karma_list
+    if action == 'attack':
+        run_attack(user_graph,july_final_karma,weight_dict)
+    elif action == 'partition':
+        run_partition(user_graph, july_final_karma, weight_dict)
+    elif action == 'pruning':
+        run_pruning(user_graph, july_final_karma, weight_dict)
+    elif action == 'practical':
+        # practical implementation
+        for ele in july_karma_list:
+            user_graph.remove_node(ele)
+            if ele in weight_dict:
+                del weight_dict[ele]
+    # Community detection
+    attack_graph = nx.read_gml("m3_oct_attack.gml")
+    part3 = community.best_partition(attack_graph)
+    origin_graph = nx.read_gml("m2_aug.gml")
+    part1 = community.best_partition(origin_graph)
+    defense_graph = nx.read_gml("m3_oct_defense.gml")
+    part2 = community.best_partition(defense_graph)
 
 
 
